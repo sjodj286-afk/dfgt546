@@ -618,7 +618,7 @@
                 <div class="form-group">
                     <label>Your Unique Referral Link</label>
                     <div class="referral-box">
-                        <input type="text" id="referralLinkInput" value="https://aviatorpro.live/ref/user_apon75" readonly>
+                        <input type="text" id="referralLinkInput" value="" readonly>
                         <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
                     </div>
                 </div>
@@ -732,6 +732,29 @@
         let currentUserEmail = localStorage.getItem('loggedInUserEmail') || '';
         let currentUserSafeKey = getSafeEmail(currentUserEmail);
 
+        // Dynamic Referral Link Generator & URL Parameter Handler
+        function updateReferralLink() {
+            let username = localStorage.getItem('loggedInUser') || 'user_apon75';
+            let baseUrl = window.location.href.split('?')[0];
+            let refLink = `${baseUrl}?ref=${encodeURIComponent(username)}`;
+            let linkInput = document.getElementById('referralLinkInput');
+            if(linkInput) {
+                linkInput.value = refLink;
+            }
+        }
+
+        function checkUrlReferralCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refParam = urlParams.get('ref');
+            if(refParam) {
+                let refInput = document.getElementById('regRefCode');
+                if(refInput) {
+                    refInput.value = refParam;
+                }
+                openRegisterModal();
+            }
+        }
+
         // REAL-TIME ADMIN LISTENERS
         let adminForcedMultiplier = null;
         let adminUserRig = 'NORMAL';
@@ -799,6 +822,8 @@
         }
 
         window.onload = function() {
+            updateReferralLink();
+            checkUrlReferralCode();
             let loggedInUser = localStorage.getItem('loggedInUser');
             if(loggedInUser) {
                 showGame();
@@ -933,6 +958,7 @@
                 localStorage.setItem('loggedInUserEmail', validUser.email);
                 currentUserEmail = validUser.email;
                 currentUserSafeKey = getSafeEmail(validUser.email);
+                updateReferralLink();
                 initUserAdminSync();
                 setTimeout(showGame, 1000); 
             } else {
@@ -995,6 +1021,7 @@
             document.getElementById(modalId).style.display = 'flex'; 
             if(modalId === 'historyModal') renderMyHistoryTable();
             if(modalId === 'transactionHistoryModal') renderTransactionHistory();
+            if(modalId === 'referralModal') updateReferralLink();
         }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
@@ -1053,6 +1080,7 @@
         }
 
         function copyReferralLink() {
+            updateReferralLink();
             let refInput = document.getElementById('referralLinkInput'); refInput.select(); navigator.clipboard.writeText(refInput.value);
             showNotify("Referral link copied to clipboard!");
         }
