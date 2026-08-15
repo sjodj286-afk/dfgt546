@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviator Pro - Premium Gaming Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs for Admin Sync -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        spaceBlack: '#0b0f19',
+                        velvetCard: '#141c2e',
+                        royalGold: '#E5A96E',
+                        emeraldGlow: '#34D399',
+                        roseGlow: '#F43F5E',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0b0e14; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .header { background-color: #1a1e24; display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 2px solid #2a313d; z-index: 100; flex-wrap: wrap; gap: 6px; }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .menu-icon { font-size: 18px; cursor: pointer; color: #a0aab5; }
+        .brand { font-size: 19px; font-weight: 800; letter-spacing: 1.2px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .brand span { color: #00ffcc; font-weight: 900; }
+        
+        .header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #ffcc00; cursor: pointer; }
+        .balance-box { font-size: 12px; font-weight: 800; color: #00ff66; background: #12161c; padding: 4px 8px; border-radius: 4px; border: 1px solid #2a313d; cursor: pointer; transition: 0.2s; }
+        .balance-box:hover { border-color: #00ff66; }
+        .deposit-btn { background-color: #ffcc00; color: #000; border: none; padding: 5px 8px; font-weight: 800; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .withdraw-btn { background-color: #f3ba2f; color: #000; border: none; padding: 5px 8px; font-weight: 800; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+        .history-bar { background-color: #12161c; padding: 4px 10px; display: flex; gap: 6px; overflow-x: auto; border-bottom: 1px solid #222a35; align-items: center; white-space: nowrap; }
+        .history-chip { font-size: 11px; padding: 2px 6px; border-radius: 8px; font-weight: bold; background: #1a222d; color: #4cd137; flex-shrink: 0; }
+        .history-chip.high { color: #9c88ff; }
+        
+        .workspace { display: flex; flex: 1; height: calc(100vh - 85px); position: relative; overflow: hidden; }
+
+        .bets-sidebar { width: 340px; min-width: 260px; background-color: #12161c; border-right: 1px solid #222a35; display: flex; flex-direction: column; }
+        .tabs { display: flex; background: #181f28; padding: 6px; gap: 4px; border-bottom: 1px solid #222a35; justify-content: center; }
+        .tab { flex: 1; text-align: center; padding: 4px 2px; font-size: 11px; font-weight: 800; color: #7f8c8d; cursor: pointer; transition: 0.2s; background: #12161c; border-radius: 12px; }
+        .tab.active { color: #fff; background: #2a313d; }
+
+        .sub-filters { display: flex; padding: 4px 8px; gap: 4px; background: #151a21; border-bottom: 1px solid #222a35; }
+        .sub-filter-btn { flex: 1; background: #1c242f; border: none; color: #888; font-size: 10px; padding: 3px; border-radius: 3px; cursor: pointer; text-align: center; font-weight: bold; }
+        .sub-filter-btn.active { background: #2a3545; color: #fff; }
+
+        .bets-header-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 10px; color: #7f8c8d; border-bottom: 1px solid #1a222d; font-weight: 800; }
+        .bets-list { flex: 1; overflow-y: auto; padding: 4px 6px; font-size: 11px; color: #b2bec3; }
+        
+        .bet-row-item { display: flex; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid #1a222d; align-items: center; }
+        .bet-user-info { display: flex; align-items: center; gap: 6px; width: 45%; }
+        .bet-row-item span { font-size: 10px; }
+
+        .panel-footer-info { padding: 6px; font-size: 9px; color: #555; display: flex; justify-content: space-between; border-top: 1px solid #1a222d; background: #0f1318; }
+
+        .game-area { flex: 1; display: flex; flex-direction: column; background: radial-gradient(circle at center, #291b3b 0%, #0b0e14 70%); position: relative; overflow: hidden; min-width: 280px; }
+        .game-screen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+        
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+        .mode-badge { position: absolute; top: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 15px; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #ffcc00; z-index: 5; }
+        
+        .multiplier-display { font-size: 48px; font-weight: 900; color: #ffffff; text-shadow: 0 0 15px rgba(0,0,0,0.8); z-index: 5; text-align: center; }
+        .live-win-preview { font-size: 14px; color: #00ff66; font-weight: 800; margin-top: 3px; height: 20px; z-index: 5; }
+
+        .controls-container { background-color: #12161c; padding: 6px; display: flex; gap: 6px; border-top: 2px solid #222a35; justify-content: center; z-index: 10; flex-wrap: wrap; }
+        .bet-control-box { background: #1a222d; border: 1px solid #2a3545; border-radius: 6px; padding: 6px 8px; width: 420px; max-width: 100%; display: flex; flex-direction: column; gap: 5px; }
+        
+        .bet-top-row { display: flex; justify-content: space-between; align-items: center; }
+        .mode-switch { display: flex; background: #12161c; border-radius: 3px; padding: 1px; }
+        .switch-btn { padding: 3px 8px; font-size: 10px; font-weight: 800; border: none; cursor: pointer; border-radius: 2px; background: transparent; color: #7f8c8d; }
+        .switch-btn.active { background: #2a3545; color: #fff; }
+
+        .input-row { display: flex; justify-content: space-between; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .amount-input-group { display: flex; align-items: center; background: #12161c; border: 1px solid #333; border-radius: 4px; overflow: hidden; }
+        .amount-input-group button { background: #222a35; color: #fff; border: none; padding: 6px 8px; font-weight: 800; cursor: pointer; font-size: 12px; }
+        .amount-input-group input { width: 55px; background: transparent; border: none; color: #fff; text-align: center; font-size: 13px; font-weight: 800; outline: none; }
+
+        .preset-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; width: 110px; }
+        .preset-btn { background: #222a35; border: none; color: #aaa; font-size: 9px; padding: 3px 2px; border-radius: 2px; cursor: pointer; font-weight: bold; }
+        .preset-btn:hover { background: #2a3545; color: #fff; }
+
+        .action-btn { flex: 1; padding: 7px; font-size: 13px; font-weight: 900; border: none; border-radius: 5px; cursor: pointer; text-transform: uppercase; transition: 0.2s; text-align: center; min-width: 90px; }
+        .btn-bet { background-color: #27ae60; color: white; }
+        .btn-bet:hover { background-color: #2ecc71; }
+        .btn-cashout { background-color: #f1c40f; color: black; display: block; }
+        .btn-cancel { background-color: #e74c3c; color: white; display: block; } /* Cancel/Back button style before run */
+
+        /* Left Side Menu Drawer - Professional Font & Bold Styling */
+        .menu-overlay { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #12161c; border-right: 2px solid #2a313d; z-index: 1000; transition: left 0.3s ease; display: flex; flex-direction: column; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+        .menu-overlay.open { left: 0; }
+        .menu-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 15px; background: #1a1e24; border-bottom: 1px solid #2a313d; }
+        .menu-title { font-size: 15px; font-weight: 900; color: #00ffcc; letter-spacing: 0.5px; }
+        .menu-close { font-size: 18px; cursor: pointer; color: #aaa; font-weight: bold; }
+        .menu-items { padding: 10px 0; display: flex; flex-direction: column; overflow-y: auto; gap: 2px; }
+        .menu-item { padding: 12px 18px; font-size: 13px; font-weight: 700; color: #e2e8f0; cursor: pointer; border-bottom: 1px solid #1a222d; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .menu-item:hover { background: #1f2836; color: #00ffcc; padding-left: 22px; }
+
+        .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 10px; }
+        .modal-content { background: #161c24; border: 1px solid #2a3545; width: 450px; max-width: 100%; border-radius: 6px; padding: 15px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .modal-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222a35; padding-bottom: 8px; }
+        .modal-title { font-size: 14px; font-weight: bold; color: #00ffcc; }
+        .modal-close-btn { font-size: 16px; cursor: pointer; color: #aaa; }
+        .modal-body { font-size: 12px; color: #b2bec3; line-height: 1.5; max-height: 300px; overflow-y: auto; }
+        .modal-body table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .modal-body th, .modal-body td { border: 1px solid #2a3545; padding: 5px; text-align: left; font-size: 11px; }
+        .modal-body th { background: #1f2836; color: #fff; }
+        
+        /* Deposit & Withdrawal Section - Bold, Clear & Attractive Styling */
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .form-group label { font-size: 12px; color: #00ffcc; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select { background: #12161c; border: 2px solid #2a3545; padding: 10px; color: #fff; border-radius: 6px; outline: none; width: 100%; font-size: 13px; font-weight: 800; }
+        .form-group input:focus, .form-group select:focus { border-color: #00ffcc; }
+        .modal-submit-btn { background: #00ffcc; color: #000; border: none; padding: 10px; font-weight: 900; border-radius: 6px; cursor: pointer; transition: 0.2s; width: 100%; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .modal-submit-btn:hover { background: #00cc99; }
+
+        .referral-box { display: flex; gap: 6px; margin-top: 8px; }
+        .referral-box input { flex: 1; background: #12161c; border: 1px solid #2a3545; padding: 6px; color: #00ffcc; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .copy-btn { background: #ffcc00; color: #000; border: none; padding: 6px 12px; font-weight: 800; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+        /* Notification position changed to top center or inside game screen for better visual */
+        .notification { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(24, 31, 40, 0.95); border: 2px solid #00ffcc; padding: 8px 18px; border-radius: 20px; font-size: 12px; font-weight: 900; color: #fff; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.7); z-index: 1000; text-align: center; }
+
+        .chat-container { display: flex; flex-direction: column; height: 240px; background: #0f1318; border: 1px solid #2a3545; border-radius: 6px; overflow: hidden; }
+        .chat-messages { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .chat-msg { padding: 6px 10px; border-radius: 5px; max-width: 75%; font-size: 11px; word-break: break-word; }
+        .chat-msg.user { background: #2a3545; color: #fff; align-self: flex-start; }
+        .chat-msg.admin { background: #00ffcc; color: #000; align-self: flex-end; font-weight: bold; }
+        .chat-input-row { display: flex; border-top: 1px solid #2a3545; background: #161c24; }
+        .chat-input-row input { flex: 1; background: transparent; border: none; padding: 8px; color: #fff; font-size: 11px; outline: none; }
+        .chat-input-row button { background: #00ffcc; color: #000; border: none; padding: 0 15px; font-weight: bold; cursor: pointer; font-size: 11px; }
+
+        @media (max-width: 768px) {
+            .workspace { flex-direction: column-reverse; height: auto; overflow-y: auto; }
+            .bets-sidebar { width: 100%; height: 160px; border-right: none; border-bottom: 1px solid #222a35; }
+            .game-area { height: 360px; min-height: 360px; flex: none; }
+            .controls-container { flex-direction: column; align-items: center; }
+            .bet-control-box { width: 100%; }
+            #gameWrapper { overflow: auto !important; height: auto !important; }
+        }
+
+        .gold-text {
+            background: linear-gradient(to bottom, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #homeWrapper { display: block; width: 100%; min-height: 100vh; overflow-x: hidden; }
+        #gameWrapper { display: none; width: 100%; height: 100vh; flex-direction: column; overflow: hidden; }
+    </style>
+</head>
+<body>
+
+    <!-- ================= HOME PAGE WRAPPER ================= -->
+    <div id="homeWrapper" class="bg-[#0b2416] text-white font-sans">
+        <div class="bg-[#05160e] py-2 px-4 border-b border-emerald-900 flex justify-between items-center w-full mx-auto">
+            <div class="text-xs md:text-sm text-emerald-300 font-semibold">
+                ✨ প্রিমিয়াম গেমিং এবং ট্রেডিং প্ল্যাটফর্মে আপনাকে স্বাগতম।
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openRegisterModal()" class="bg-gradient-to-r from-lime-400 to-green-500 text-black font-bold px-3 py-1.5 rounded-lg text-xs md:text-sm shadow-md hover:opacity-90 transition">
+                    নিবন্ধন করুন
+                </button>
+                <button onclick="openLoginModal()" class="bg-gradient-to-r from-amber-300 to-amber-500 text-black font-bold px-3 py-1.5 rounded-lg text-xs md:text-sm shadow-md hover:opacity-90 transition">
+                    লগইন
+                </button>
+            </div>
+        </div>
+
+        <header class="relative bg-gradient-to-r from-[#072213] via-[#0f4c28] to-[#072213] border-b-4 border-[#1e6035] overflow-hidden py-6">
+            <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="w-full md:w-1/4 flex justify-center">
+                    <div class="relative w-36 h-48 md:w-40 md:h-52 rounded-xl overflow-hidden border-2 border-amber-400 shadow-lg bg-gray-800">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400" alt="Model 1" class="w-full h-full object-cover">
+                        <span class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/60 text-amber-300 text-[10px] px-2 py-0.5 rounded">VIP Admin</span>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-2/4 text-center space-y-3">
+                    <h1 class="text-xl md:text-4xl font-extrabold text-white drop-shadow-md">
+                        সদস্যদের বিশেষ উদযাপন দিন
+                    </h1>
+                    <h2 class="text-2xl md:text-5xl font-black gold-text drop-shadow-lg">
+                        প্রতি মাসের ১, ১১, ও ২১
+                    </h2>
+                    <p class="text-sm md:text-xl font-semibold text-emerald-200">
+                        তারিখে তিন গুণ উপহার, উপভোগ করুন সম্মানিত সুবিধা!
+                    </p>
+                    <div class="flex justify-center space-x-2 pt-2">
+                        <span class="w-2.5 h-2.5 bg-white rounded-full"></span>
+                        <span class="w-2.5 h-2.5 bg-emerald-600 rounded-full"></span>
+                        <span class="w-2.5 h-2.5 bg-emerald-600 rounded-full"></span>
+                        <span class="w-2.5 h-2.5 bg-emerald-600 rounded-full"></span>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-1/4 flex justify-center gap-3">
+                    <div class="relative w-24 h-40 md:w-28 md:h-48 rounded-xl overflow-hidden border-2 border-amber-400 shadow-lg bg-gray-800">
+                        <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400" alt="Model 2" class="w-full h-full object-cover">
+                    </div>
+                    <div class="relative w-24 h-40 md:w-28 md:h-48 rounded-xl overflow-hidden border-2 border-amber-400 shadow-lg bg-gray-800">
+                        <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400" alt="Model 3" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="bg-[#07190f] py-3 border-y border-emerald-900">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 px-4 text-center md:text-left">
+                <div class="flex items-center justify-center md:justify-start space-x-3 bg-[#0d2e1b] p-3 rounded-lg border border-emerald-800">
+                    <span class="text-2xl">🛡️</span>
+                    <div>
+                        <h3 class="text-emerald-400 font-bold text-sm">সুরক্ষিত ও বিশ্বস্ত</h3>
+                        <p class="text-xs text-gray-300">এশিয়ার অন্যতম সেরা ও নিরাপদ গেমিং প্ল্যাটফর্ম।</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center md:justify-start space-x-3 bg-[#0d2e1b] p-3 rounded-lg border border-emerald-800">
+                    <span class="text-2xl">🎮</span>
+                    <div>
+                        <h3 class="text-emerald-400 font-bold text-sm">এক্সক্লুসিভ গেমস</h3>
+                        <p class="text-xs text-gray-300">লাইভ ক্যাসিনো, ক্রাশ ও স্লট গেমের দুর্দান্ত অভিজ্ঞতা।</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center md:justify-start space-x-3 bg-[#0d2e1b] p-3 rounded-lg border border-emerald-800">
+                    <span class="text-2xl">⚡</span>
+                    <div>
+                        <h3 class="text-emerald-400 font-bold text-sm">ইনস্ট্যান্ট ট্রেডিং</h3>
+                        <p class="text-xs text-gray-300">অটোমেটেড প্রসেসিং সিস্টেমের মাধ্যমে দ্রুততম লেনদেন।</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-12 px-4 text-center">
+            <div class="max-w-5xl mx-auto bg-[#071b10] border-2 border-emerald-500 rounded-2xl p-6 relative shadow-2xl">
+                <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-[#0e3b22] border-2 border-amber-400 px-8 py-2 rounded-full shadow-lg">
+                    <h2 class="text-2xl md:text-4xl font-black tracking-wider gold-text">JACKPOT</h2>
+                </div>
+                <div class="mt-6 mb-8">
+                    <span id="jackpot-counter" class="text-3xl md:text-7xl font-extrabold tracking-widest text-amber-300 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                        527,004,027.00
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="h-28 md:h-32 bg-gray-800 rounded-lg border border-emerald-700 flex items-center justify-center text-xs">গেম থাম্বনেইল ১</div>
+                    <div class="h-28 md:h-32 bg-gray-800 rounded-lg border border-emerald-700 flex items-center justify-center text-xs">গেম থাম্বনেইল ২</div>
+                    <div class="h-28 md:h-32 bg-gray-800 rounded-lg border border-emerald-700 flex items-center justify-center text-xs">গেম থাম্বনেইল ৩</div>
+                    <div class="h-28 md:h-32 bg-gray-800 rounded-lg border border-emerald-700 flex items-center justify-center text-xs">গেম থাম্বনেইল ৪</div>
+                    <div class="h-28 md:h-32 bg-gray-800 rounded-lg border border-emerald-700 flex items-center justify-center text-xs">গেম থাম্বনেইল ৫</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ================= GAME PAGE WRAPPER ================= -->
+    <div id="gameWrapper">
+        <!-- Slide-out Menu Drawer -->
+        <div class="menu-overlay" id="menuOverlay">
+            <div class="menu-header">
+                <div class="menu-title">Menu & Settings</div>
+                <div class="menu-close" onclick="toggleMenu()">✕</div>
+            </div>
+            <div class="menu-items">
+                <div class="menu-item" onclick="openModal('profileKycModal')">👤 Profile & NID Verify</div>
+                <div class="menu-item" onclick="toggleSoundFromMenu()" id="menuSoundItem">🔊 Sound: ON</div>
+                <div class="menu-item" onclick="openModal('rulesModal')">📖 Game Rules</div>
+                <div class="menu-item" onclick="openModal('fairModal')">🛡️ Provably Fair</div>
+                <div class="menu-item" onclick="openModal('transactionHistoryModal')">💳 Deposit & Withdraw History</div>
+                <div class="menu-item" onclick="openModal('historyModal')">📊 My Bet History</div>
+                <div class="menu-item" onclick="openModal('referralModal')">👥 Referral Program (+10 BDT)</div>
+                <div class="menu-item" onclick="showNotify('Promo & Bonuses')">🎁 Promotions</div>
+                <div class="menu-item" onclick="openModal('supportModal')">🎧 Support Center</div>
+                <div class="menu-item" onclick="handleLogout()" style="color: #F43F5E; font-weight: bold;">🚪 Logout</div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-area">
+                <div class="menu-icon" onclick="toggleMenu()">☰</div>
+                <!-- Site Name Updated to Aviator Pro -->
+                <div class="brand">Aviator <span>Pro</span></div>
+                <span class="balance-box" id="mainBalance" onclick="toggleBalanceType()" title="Click to switch Real / Demo balance">0.00 BDT (Real)</span>
+            </div>
+            <div class="header-right">
+                <button class="deposit-btn" onclick="openModal('depositModal')">ডিপোজিট</button>
+                <button class="withdraw-btn" onclick="openModal('withdrawalModal')">উত্তোলন</button>
+            </div>
+        </header>
+
+        <!-- History bar -->
+        <div class="history-bar" id="historyBar">
+            <div class="history-chip">1.36x</div>
+            <div class="history-chip high">15.46x</div>
+            <div class="history-chip">1.27x</div>
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace">
+            <div class="bets-sidebar">
+                <div class="tabs">
+                    <div class="tab active" id="tabAll" onclick="switchTab('All')">All Bets</div>
+                    <div class="tab" id="tabPrev" onclick="switchTab('Prev')">Previous</div>
+                    <div class="tab" id="tabTop" onclick="switchTab('Top')">Top</div>
+                </div>
+                
+                <div id="subFilterContainer"></div>
+
+                <div class="bets-header-row">
+                    <span>Player</span>
+                    <span>Bet BDT</span>
+                    <span>X</span>
+                    <span>Win BDT</span>
+                </div>
+
+                <div class="bets-list" id="betsListContainer"></div>
+
+                <div class="panel-footer-info">
+                    <span>🛡️ Provably Fair Game</span>
+                    <span>Powered by SPRIBE</span>
+                </div>
+            </div>
+
+            <div class="game-area" id="gameAreaContainer">
+                <div class="game-screen">
+                    <canvas id="gameCanvas"></canvas>
+                    <div class="mode-badge" id="modeBadge">REAL ACCOUNT</div>
+                    <div class="multiplier-display" id="multiplierDisplay">1.00x</div>
+                    <div class="live-win-preview" id="liveWinPreview"></div>
+                    <!-- Notification placed cleanly inside game screen area -->
+                    <div class="notification" id="popupNotification"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="controls-container">
+            <div class="bet-control-box">
+                <div class="bet-top-row">
+                    <div class="mode-switch">
+                        <button class="switch-btn" id="p1Fun" onclick="setAccountMode('FUN', 1)">Fun Mode</button>
+                        <button class="switch-btn active" id="p1Real" onclick="setAccountMode('REAL', 1)">Real Account</button>
+                    </div>
+                    <span style="font-size: 10px; color: #7f8c8d; font-weight: bold;">Auto Cash Out</span>
+                </div>
+                <div class="input-row">
+                    <div class="amount-input-group">
+                        <button onclick="adjustAmount(-10, 1)">-</button>
+                        <input type="number" id="betAmount1" value="10.00">
+                        <button onclick="adjustAmount(10, 1)">+</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="setPreset(100, 1)">100</button>
+                        <button class="preset-btn" onclick="setPreset(200, 1)">200</button>
+                        <button class="preset-btn" onclick="setPreset(500, 1)">500</button>
+                        <button class="preset-btn" onclick="setPreset(1000, 1)">10k</button>
+                    </div>
+                    <button class="action-btn btn-bet" id="actionBtn1" onclick="handleBetAction(1)">Bet 10.00</button>
+                </div>
+            </div>
+
+            <div class="bet-control-box">
+                <div class="bet-top-row">
+                    <div class="mode-switch">
+                        <button class="switch-btn" id="p2Fun" onclick="setAccountMode('FUN', 2)">Fun Mode</button>
+                        <button class="switch-btn active" id="p2Real" onclick="setAccountMode('REAL', 2)">Real Account</button>
+                    </div>
+                    <span style="font-size: 10px; color: #7f8c8d; font-weight: bold;">Auto Cash Out</span>
+                </div>
+                <div class="input-row">
+                    <div class="amount-input-group">
+                        <button onclick="adjustAmount(-10, 2)">-</button>
+                        <input type="number" id="betAmount2" value="10.00">
+                        <button onclick="adjustAmount(10, 2)">+</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="setPreset(100, 2)">100</button>
+                        <button class="preset-btn" onclick="setPreset(200, 2)">200</button>
+                        <button class="preset-btn" onclick="setPreset(500, 2)">500</button>
+                        <button class="preset-btn" onclick="setPreset(1000, 2)">10k</button>
+                    </div>
+                    <button class="action-btn btn-bet" id="actionBtn2" onclick="handleBetAction(2)">Bet 10.00</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ALL MODALS ================= -->
+    
+    <!-- Registration Modal with Referral Code Field -->
+    <div id="registerModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[2500] hidden p-4">
+        <div class="bg-[#072213] border-2 border-emerald-600 w-full max-w-md rounded-2xl p-6 relative shadow-2xl text-white">
+            <button onclick="closeRegisterModal()" class="absolute top-3 right-4 text-gray-400 hover:text-white text-xl font-bold">✕</button>
+            <h2 class="text-2xl font-bold text-center gold-text mb-6">নিবন্ধন করুন</h2>
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4">
+                <div><input type="text" id="regName" placeholder="ব্যবহারকারী নাম" required class="w-full bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"></div>
+                <div><input type="email" id="regEmail" placeholder="জিমেইল এড্রেস (Gmail)" required class="w-full bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"></div>
+                <div><input type="password" id="regPass" placeholder="পাসওয়ার্ড" required class="w-full bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"></div>
+                <!-- Referral Code Input Field Added -->
+                <div><input type="text" id="regRefCode" placeholder="রেফারেল কোড (ঐচ্ছিক)" class="w-full bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="regOtpInput" placeholder="যাচাই কোড (OTP)" required class="w-2/3 bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                    <button type="button" onclick="sendFakeOtp()" class="w-1/3 bg-amber-400 text-black font-bold rounded-lg text-xs py-2 hover:bg-amber-300 transition">কোড পেতে</button>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-amber-300 to-amber-500 text-black font-bold py-2.5 rounded-lg text-sm shadow-lg hover:opacity-90 transition">নিবন্ধন করুন</button>
+                <div class="flex items-center space-x-2 text-xs text-gray-300 pt-2">
+                    <input type="checkbox" id="terms" required class="rounded bg-gray-800 border-emerald-600">
+                    <label for="terms">আমি ১৮ বছর পূর্ণ এবং গ্রহণ করতে সম্মত ব্যবহারের শর্ত</label>
+                </div>
+            </form>
+            <div class="text-center mt-4 text-xs">ইতিমধ্যে একটি অ্যাকাউন্ট আছে? <button onclick="switchToLogin()" class="text-amber-400 font-bold underline">লগইন</button></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[2500] hidden p-4">
+        <div class="bg-[#072213] border-2 border-emerald-600 w-full max-w-md rounded-2xl p-6 relative shadow-2xl text-white">
+            <button onclick="closeLoginModal()" class="absolute top-3 right-4 text-gray-400 hover:text-white text-xl font-bold">✕</button>
+            <h2 class="text-2xl font-bold text-center gold-text mb-6">লগইন</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div><input type="text" id="loginName" placeholder="ব্যবহারকারী নাম বা জিমেইল" required class="w-full bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"></div>
+                <div><input type="password" id="loginPass" placeholder="পাসওয়ার্ড" required class="w-full bg-[#113824] border border-emerald-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"></div>
+                <div class="flex items-center space-x-2 text-xs text-gray-300">
+                    <input type="checkbox" id="remember" class="rounded bg-gray-800 border-emerald-600">
+                    <label for="remember">মনে রাখুন</label>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-amber-300 to-amber-500 text-black font-bold py-2.5 rounded-lg text-sm shadow-lg hover:opacity-90 transition">লগইন</button>
+            </form>
+            <div class="text-center mt-4 text-xs">অ্যাকাউন্ট নেই? <button onclick="switchToRegister()" class="text-lime-400 font-bold underline">নিবন্ধন করুন</button></div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[2600] hidden p-4">
+        <div class="bg-[#072213] border-2 border-amber-400 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl text-white space-y-4">
+            <h3 id="customAlertTitle" class="text-lg font-bold gold-text">বিজ্ঞপ্তি</h3>
+            <p id="customAlertText" class="text-sm text-gray-200"></p>
+            <div id="customAlertOtpCode" class="text-3xl font-black text-amber-300 tracking-widest bg-[#113824] py-3 rounded-lg border border-emerald-700 hidden"></div>
+            <button onclick="closeCustomAlert()" class="w-full bg-gradient-to-r from-amber-300 to-amber-500 text-black font-bold py-2 rounded-lg text-sm shadow hover:opacity-90 transition">ঠিক আছে</button>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="rulesModal">
+        <div class="modal-content">
+            <div class="modal-header-row">
+                <div class="modal-title">📖 Game Rules & Instructions</div>
+                <div class="modal-close-btn" onclick="closeModal('rulesModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <p><strong>1. Introduction:</strong> Aviator Game is a thrilling multiplayer crash game where the multiplier continuously increases as long as the plane stays airborne.</p><br>
+                <p><strong>2. How to Play:</strong> Place your bet before the round begins. Watch the multiplier grow. Cash out before the random crash occurs to win your stake multiplied by the cashout factor.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="fairModal">
+        <div class="modal-content">
+            <div class="modal-header-row">
+                <div class="modal-title">🛡️ Provably Fair Settings</div>
+                <div class="modal-close-btn" onclick="closeModal('fairModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <p><strong>Transparency Guarantee:</strong> Each round outcome is generated using a cryptographically secure Provably Fair algorithm.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="transactionHistoryModal">
+        <div class="modal-content" style="width: 600px;">
+            <div class="modal-header-row">
+                <div class="modal-title">💳 Deposit & Withdraw History</div>
+                <div class="modal-close-btn" onclick="closeModal('transactionHistoryModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <h3 style="color:#00ffcc; margin-bottom:5px;">📥 Deposit History</h3>
+                <table>
+                    <thead>
+                        <tr><th>Time / ID</th><th>Method</th><th>Amount</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="depositHistoryTableBody">
+                        <tr><td colspan="4" style="text-align: center; color: #7f8c8d;">No deposit history.</td></tr>
+                    </tbody>
+                </table>
+                <h3 style="color:#f3ba2f; margin-top:15px; margin-bottom:5px;">📤 Withdraw History</h3>
+                <table>
+                    <thead>
+                        <tr><th>Time / ID</th><th>Method / Account</th><th>Amount</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="withdrawHistoryTableBody">
+                        <tr><td colspan="4" style="text-align: center; color: #7f8c8d;">No withdrawal history.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="profileKycModal">
+        <div class="modal-content" style="width: 650px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header-row">
+                <div class="modal-title">👤 Account Verification (KYC) & Profile</div>
+                <div class="modal-close-btn" onclick="closeModal('profileKycModal')">✕</div>
+            </div>
+            <div class="modal-body" style="max-height: none; overflow: visible;">
+                <div class="max-w-3xl w-full mx-auto space-y-3 text-slate-100">
+                    <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl space-y-2 border border-slate-800 shadow-xl">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <h2 class="text-lg sm:text-xl font-black tracking-tight" style="background: linear-gradient(135deg, #FFD700 0%, #FF8C00 50%, #00FFFF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">NID Identity Verification</h2>
+                            <div id="status-container" class="flex items-center gap-2">
+                                <span id="status-badge" class="text-xs font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3.5 py-1.5 rounded-full font-bold inline-block">Unverified</span>
+                            </div>
+                        </div>
+                        <p id="header-desc" class="text-xs text-slate-300 font-medium">Please provide accurate details matching your NID or Driving License to unlock full features globally.</p>
+                    </div>
+
+                    <div id="notification-banner" class="hidden p-2.5 rounded-lg text-xs font-bold tracking-wide transition-all shadow-lg"></div>
+
+                    <div class="bg-slate-900/60 p-3 sm:p-4 rounded-xl space-y-3 border border-slate-800 shadow-2xl">
+                        <form id="kycForm" onsubmit="handleKycSubmit(event)" autocomplete="off" class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">Full Name (As per NID / License)</label>
+                                <input type="text" id="fullName" required autocomplete="off" placeholder="Enter Full Name" class="w-full bg-spaceBlack/90 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-amber-400 outline-none transition shadow-inner">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">NID / Driving License Number</label>
+                                    <input type="text" id="nidNumber" required autocomplete="off" placeholder="Enter NID No" class="w-full bg-spaceBlack/90 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-amber-400 outline-none transition shadow-inner">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">Date of Birth</label>
+                                    <input type="date" id="dob" required autocomplete="off" class="w-full bg-spaceBlack/90 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-amber-400 outline-none transition shadow-inner">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">Country</label>
+                                    <input type="text" id="country" required autocomplete="off" value="Bangladesh" class="w-full bg-spaceBlack/90 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-amber-400 outline-none transition shadow-inner">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">City</label>
+                                    <input type="text" id="city" required autocomplete="off" placeholder="Enter City" class="w-full bg-spaceBlack/90 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-amber-400 outline-none transition shadow-inner">
+                                </div>
+                            </div>
+                            <div id="upload-section" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">Document (Front Side)</label>
+                                    <div class="border-2 border-dashed border-slate-700 hover:border-amber-400 rounded-lg p-3 text-center bg-spaceBlack/60 transition cursor-pointer relative shadow-inner">
+                                        <input type="file" id="nidFront" required accept="image/*" onchange="previewImage(event, 'front-preview')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                                        <div id="front-preview" class="space-y-1 pointer-events-none">
+                                            <span class="text-lg">📄</span>
+                                            <span class="block text-xs text-slate-200 font-bold">Upload front photo</span>
+                                            <span class="block text-[9px] text-slate-400 font-mono">JPG, PNG</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-xs font-mono text-amber-400 uppercase tracking-wider font-bold">Document (Back Side)</label>
+                                    <div class="border-2 border-dashed border-slate-700 hover:border-amber-400 rounded-lg p-3 text-center bg-spaceBlack/60 transition cursor-pointer relative shadow-inner">
+                                        <input type="file" id="nidBack" required accept="image/*" onchange="previewImage(event, 'back-preview')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                                        <div id="back-preview" class="space-y-1 pointer-events-none">
+                                            <span class="text-lg">📄</span>
+                                            <span class="block text-xs text-slate-200 font-bold">Upload back photo</span>
+                                            <span class="block text-[9px] text-slate-400 font-mono">JPG, PNG</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pt-1" id="submit-container">
+                                <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black py-2.5 rounded-lg shadow-lg hover:opacity-95 transition tracking-wider uppercase text-xs">
+                                    Submit Verification Documents
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="historyModal">
+        <div class="modal-content" style="width: 550px;">
+            <div class="modal-header-row">
+                <div class="modal-title">📊 My Bet History</div>
+                <div class="modal-close-btn" onclick="closeModal('historyModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <table>
+                    <thead><tr><th>Time</th><th>Mode</th><th>Bet (BDT)</th><th>Multiplier</th><th>Win (BDT)</th></tr></thead>
+                    <tbody id="myHistoryTableBody">
+                        <tr><td colspan="5" style="text-align: center; color: #7f8c8d;">No bets placed yet in this session.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referral Modal Updated for 10 BDT Reward -->
+    <div class="modal-bg" id="referralModal">
+        <div class="modal-content">
+            <div class="modal-header-row">
+                <div class="modal-title">👥 Referral Program</div>
+                <div class="modal-close-btn" onclick="closeModal('referralModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <p>Invite your friends to Aviator Pro! Earn <strong>10.00 BDT</strong> directly to your real balance for every successful referral.</p><br>
+                <div class="form-group">
+                    <label>Your Unique Referral Link</label>
+                    <div class="referral-box">
+                        <input type="text" id="referralLinkInput" value="https://aviatorpro.live/ref/user_apon75" readonly>
+                        <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #00ffcc; font-weight: bold;">
+                    Total Referrals: <span id="totalReferralsCount">0</span> | Earned: <span id="totalReferralEarnings">0.00</span> BDT
+                </div><br>
+                <button class="modal-submit-btn" onclick="simulateNewReferral()">Simulate Friend Join (+10 BDT)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="depositModal">
+        <div class="modal-content">
+            <div class="modal-header-row">
+                <div class="modal-title">💳 Deposit Funds (Pending Approval)</div>
+                <div class="modal-close-btn" onclick="closeModal('depositModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <p style="color: #f1c40f; margin-bottom: 10px; font-weight: 700;">Notice: Direct instant balance add is disabled. Submitting this deposit will create a pending request. Funds will be credited after verification.</p>
+                <div class="form-group">
+                    <label>Select Payment Method</label>
+                    <select id="depositMethod">
+                        <option value="Bkash">BKash ( 01768584178 ) - Send Money</option>
+                        <option value="Nagad">Nagad ( 01768584178 ) - Send Money</option>
+                        <option value="Rocket">Rocket ( 01768584178 ) - Send Money</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sender Account / Transaction ID (TrxID)</label>
+                    <input type="text" id="depositTrxInput" placeholder="Enter BKash/Nagad TrxID & Number">
+                </div>
+                <div class="form-group">
+                    <label>Deposit Amount (BDT) - Minimum 100</label>
+                    <input type="number" id="depositAmountInput" value="100" min="100">
+                </div>
+                <button class="modal-submit-btn" onclick="processDeposit()">Submit Deposit Request</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="withdrawalModal">
+        <div class="modal-content">
+            <div class="modal-header-row">
+                <div class="modal-title">💸 Withdrawal Funds</div>
+                <div class="modal-close-btn" onclick="closeModal('withdrawalModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Withdrawal Method</label>
+                    <select id="withdrawMethod">
+                        <option value="Bkash">BKash Account</option>
+                        <option value="Nagad">Nagad Account</option>
+                        <option value="Rocket">Rocket Account</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" id="withdrawAccountInput" placeholder="Enter your account number">
+                </div>
+                <div class="form-group">
+                    <label>Amount (BDT) - Minimum 100</label>
+                    <input type="number" id="withdrawAmountInput" value="100" min="100">
+                </div>
+                <button class="modal-submit-btn" onclick="processWithdrawal()">Submit Withdrawal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="supportModal">
+        <div class="modal-content" style="width: 500px;">
+            <div class="modal-header-row">
+                <div class="modal-title">🎧 Support Center & Live Chat</div>
+                <div class="modal-close-btn" onclick="closeModal('supportModal')">✕</div>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 8px; font-size: 11px; color: #888;">Chat live directly with support.</p>
+                <div class="chat-container">
+                    <div class="chat-messages" id="userChatMessages">
+                        <div class="chat-msg admin">Hello! Welcome to Aviator Pro Support. How can I help you today?</div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="userChatInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendUserChatMessage()">
+                        <button onclick="sendUserChatMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC & FIREBASE ADMIN FULL CONTROL INTEGRATION -->
+    <script>
+        // FIREBASE CONFIGURATION (EXACT MATCH WITH ADMIN PANEL)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzTnQaSOFIszp2h_UDDUbYS7NLFgY7Alo",
+            authDomain: "avatar-pro-4aae1.firebaseapp.com",
+            databaseURL: "https://avatar-pro-4aae1-default-rtdb.firebaseio.com",
+            projectId: "avatar-pro-4aae1",
+            storageBucket: "avatar-pro-4aae1.firebasestorage.app",
+            messagingSenderId: "181566856523",
+            appId: "1:181566856523:web:9a5c2210dc616a58aa9be6"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Helper to format email keys for Firebase
+        function getSafeEmail(email) {
+            if(!email) return 'unknown_user';
+            return email.replace(/\./g, '_').replace(/@/g, '_at_');
+        }
+
+        let currentUserEmail = localStorage.getItem('loggedInUserEmail') || '';
+        let currentUserSafeKey = getSafeEmail(currentUserEmail);
+
+        // REAL-TIME ADMIN LISTENERS
+        let adminForcedMultiplier = null;
+        let adminUserRig = 'NORMAL';
+
+        // 1. Listen for Global Notice from Admin
+        db.ref('settings/notice').on('value', snapshot => {
+            let noticeMsg = snapshot.val();
+            if(noticeMsg) {
+                showNotify("📢 NOTICE: " + noticeMsg);
+            }
+        });
+
+        // 2. Listen for Forced Multiplier from Admin
+        db.ref('settings/forcedMultiplier').on('value', snapshot => {
+            let val = snapshot.val();
+            if(val !== null && !isNaN(val)) {
+                adminForcedMultiplier = parseFloat(val);
+            }
+        });
+
+        // 3. Listen for User Profile Updates (Balance, Rigging, Account Status) from Admin
+        function initUserAdminSync() {
+            if(!currentUserSafeKey || currentUserSafeKey === 'unknown_user') return;
+            
+            db.ref(`users/${currentUserSafeKey}`).on('value', snapshot => {
+                let uData = snapshot.val();
+                if(uData) {
+                    // Real-Time Balance Control
+                    if(uData.balance !== undefined) {
+                        realBalance = parseFloat(uData.balance);
+                        localStorage.setItem('aviator_real_balance', realBalance);
+                        updateBalanceDisplay();
+                    }
+                    // Rigging Control (WIN / LOSS / NORMAL)
+                    if(uData.rig) {
+                        adminUserRig = uData.rig;
+                    }
+                    // Account Suspension & Deletion Control
+                    if(uData.status === 'SUSPENDED') {
+                        alert('Your account has been SUSPENDED by Admin.');
+                        handleLogout();
+                    }
+                } else {
+                    // User deleted from admin
+                    if(localStorage.getItem('loggedInUser')) {
+                        alert('Account deleted by Admin!');
+                        handleLogout();
+                    }
+                }
+            });
+
+            // Listen to Live Chat Replies from Admin
+            db.ref(`chats/${currentUserSafeKey}`).on('value', snapshot => {
+                let msgs = snapshot.val() || {};
+                let html = '';
+                Object.values(msgs).forEach(m => {
+                    let cls = m.sender === 'admin' ? 'chat-msg admin' : 'chat-msg user';
+                    let label = m.sender === 'admin' ? '<b>Admin:</b> ' : '';
+                    html += `<div class="${cls}">${label}${m.text}</div>`;
+                });
+                document.getElementById('userChatMessages').innerHTML = html;
+                let container = document.getElementById('userChatMessages');
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        window.onload = function() {
+            let loggedInUser = localStorage.getItem('loggedInUser');
+            if(loggedInUser) {
+                showGame();
+                initUserAdminSync();
+            } else {
+                showHome();
+            }
+        }
+
+        function showGame() {
+            document.getElementById('homeWrapper').style.display = 'none';
+            document.getElementById('gameWrapper').style.display = 'flex';
+            document.body.style.display = 'flex';
+            document.body.style.flexDirection = 'column';
+            document.body.style.overflow = 'hidden';
+            document.body.style.height = '100vh';
+            document.body.style.backgroundColor = '#0b0e14';
+            resizeCanvas();
+            runGameLoop();
+        }
+
+        function showHome() {
+            document.getElementById('gameWrapper').style.display = 'none';
+            document.getElementById('homeWrapper').style.display = 'block';
+            document.body.style.display = 'block';
+            document.body.style.overflow = 'auto';
+            document.body.style.height = 'auto';
+            document.body.style.backgroundColor = '#0b2416';
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('loggedInUser');
+            localStorage.removeItem('loggedInUserEmail');
+            showNotify("Logged out successfully!");
+            setTimeout(() => { location.reload(); }, 800);
+        }
+
+        let currentJackpot = 527004027.00;
+        const counterElement = document.getElementById('jackpot-counter');
+        setInterval(() => {
+            let randomIncrement = Math.random() * 450 + 50; 
+            currentJackpot += randomIncrement;
+            counterElement.innerText = currentJackpot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }, 1000);
+
+        function openRegisterModal() { document.getElementById('registerModal').classList.remove('hidden'); }
+        function closeRegisterModal() { document.getElementById('registerModal').classList.add('hidden'); }
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        function switchToLogin() { closeRegisterModal(); openLoginModal(); }
+        function switchToRegister() { closeLoginModal(); openRegisterModal(); }
+        function closeCustomAlert() { document.getElementById('customAlertModal').classList.add('hidden'); }
+
+        function showCustomAlert(title, message, otp = "") {
+            document.getElementById('customAlertTitle').innerText = title;
+            document.getElementById('customAlertText').innerText = message;
+            const otpDiv = document.getElementById('customAlertOtpCode');
+            if(otp) {
+                otpDiv.innerText = otp;
+                otpDiv.classList.remove('hidden');
+            } else {
+                otpDiv.classList.add('hidden');
+            }
+            document.getElementById('customAlertModal').classList.remove('hidden');
+        }
+
+        let generatedOtp = "";
+        function sendFakeOtp() {
+            generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            showCustomAlert("জিমেইল ভেরিফিকেশন ওটিপি", "আপনার জিমেইল ভেরিফিকেশন ওটিপি কোডটি হলো:", generatedOtp);
+        }
+
+        function handleRegister(event) {
+            event.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const refCode = document.getElementById('regRefCode').value;
+            const enteredOtp = document.getElementById('regOtpInput').value;
+
+            if(!generatedOtp || enteredOtp !== generatedOtp) {
+                showCustomAlert("সতর্কবার্তা", "দয়া করে সঠিক ভেরিফিকেশন ওটিপি কোড দিন (আগে 'কোড পেতে' বাটনে ক্লিক করুন)।");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('gamingUsers')) || [];
+            let existingUser = users.find(u => u.email === email || u.name === name);
+            
+            if(existingUser) {
+                showCustomAlert("সতর্কবার্তা", "এই জিমেইল বা নাম দিয়ে ইতিপূর্বে নিবন্ধন করা হয়েছে!");
+                return;
+            }
+
+            let newUser = { name, email, pass, refCode };
+            users.push(newUser);
+            localStorage.setItem('gamingUsers', JSON.stringify(users));
+
+            let initBal = refCode ? 10 : 0;
+            if(refCode) {
+                let currentBonus = parseFloat(localStorage.getItem('aviator_real_balance')) || 0;
+                localStorage.setItem('aviator_real_balance', currentBonus + 10);
+            }
+
+            // Sync User to Firebase Realtime Database for Admin Control
+            let safeKey = getSafeEmail(email);
+            db.ref(`users/${safeKey}`).set({
+                name: name,
+                email: email,
+                pass: pass,
+                balance: initBal,
+                rig: 'NORMAL',
+                status: 'ACTIVE'
+            });
+
+            showCustomAlert("অভিনন্দন", "নিবন্ধন সফল হয়েছে! (রেফারেল কোড ব্যবহারের জন্য বোনাস যুক্ত হয়েছে)। এখন আপনি লগইন করতে পারবেন।");
+            document.getElementById('registerForm').reset();
+            switchToLogin();
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const loginInput = document.getElementById('loginName').value;
+            const loginPass = document.getElementById('loginPass').value;
+            let users = JSON.parse(localStorage.getItem('gamingUsers')) || [];
+            let validUser = users.find(u => (u.name === loginInput || u.email === loginInput) && u.pass === loginPass);
+
+            if(validUser) {
+                showCustomAlert("সফল লগইন", "লগইন সফল হয়েছে! স্বাগতম " + validUser.name);
+                closeLoginModal();
+                document.getElementById('loginForm').reset();
+                localStorage.setItem('loggedInUser', validUser.name);
+                localStorage.setItem('loggedInUserEmail', validUser.email);
+                currentUserEmail = validUser.email;
+                currentUserSafeKey = getSafeEmail(validUser.email);
+                initUserAdminSync();
+                setTimeout(showGame, 1000); 
+            } else {
+                showCustomAlert("প্রবেশাধিকার অস্বীকৃত", "ভুল তথ্য! অথবা নতুন ইউজার হলে আগে দয়া করে 'নিবন্ধন' করুন। নিবন্ধন ছাড়া লগইন করা সম্ভব নয়।");
+            }
+        }
+
+        let realBalance = localStorage.getItem('aviator_real_balance') !== null ? parseFloat(localStorage.getItem('aviator_real_balance')) : 0.00;
+        let demoBalance = parseFloat(localStorage.getItem('aviator_demo_balance')) || 10000.00;
+        let isRealMode = true;
+        let isRunning = false;
+        let isWaitingForNextRound = true; // Added state to track if bet can be cancelled before round runs
+        let multiplier = 1.00;
+        let crashPoint = 1.50;
+        let hasBetted1 = false, activeBetAmount1 = 0;
+        let hasBetted2 = false, activeBetAmount2 = 0;
+
+        let referralCount = parseInt(localStorage.getItem('aviator_ref_count')) || 0;
+        let referralEarnings = parseFloat(localStorage.getItem('aviator_ref_earnings')) || 0.00;
+
+        let currentTab = 'All';
+        let soundEnabled = true;
+        let myBetHistoryRecords = JSON.parse(localStorage.getItem('aviator_history')) || [];
+        
+        let pendingDepositsList = JSON.parse(localStorage.getItem('aviator_pending_deposits')) || [];
+        let withdrawalsList = JSON.parse(localStorage.getItem('aviator_withdrawals')) || [];
+
+        const multiplierDisplay = document.getElementById('multiplierDisplay');
+        const liveWinPreview = document.getElementById('liveWinPreview');
+        const mainBalance = document.getElementById('mainBalance');
+        const actionBtn1 = document.getElementById('actionBtn1');
+        const actionBtn2 = document.getElementById('actionBtn2');
+        const betInput1 = document.getElementById('betAmount1');
+        const betInput2 = document.getElementById('betAmount2');
+        const modeBadge = document.getElementById('modeBadge');
+        const popupNotification = document.getElementById('popupNotification');
+        const betsListContainer = document.getElementById('betsListContainer');
+        const historyBar = document.getElementById('historyBar');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const menuSoundItem = document.getElementById('menuSoundItem');
+        const sampleNames = ["Tanvir_99", "Rahim_BD", "Sakib_75", "Fahim_H", "Imran_X", "Nayeem_Pro", "Shohidul", "Ashraful", "Arman_Ali", "Nasir_99"];
+
+        function saveDataToStorage() {
+            localStorage.setItem('aviator_real_balance', realBalance);
+            localStorage.setItem('aviator_demo_balance', demoBalance);
+            localStorage.setItem('aviator_ref_count', referralCount);
+            localStorage.setItem('aviator_ref_earnings', referralEarnings);
+            localStorage.setItem('aviator_history', JSON.stringify(myBetHistoryRecords));
+            localStorage.setItem('aviator_pending_deposits', JSON.stringify(pendingDepositsList));
+            localStorage.setItem('aviator_withdrawals', JSON.stringify(withdrawalsList));
+
+            // Sync Balance to Firebase Admin in Real-Time
+            if(currentUserSafeKey && currentUserSafeKey !== 'unknown_user') {
+                db.ref(`users/${currentUserSafeKey}/balance`).set(realBalance);
+            }
+        }
+
+        function toggleMenu() { menuOverlay.classList.toggle('open'); }
+        function openModal(modalId) { 
+            document.getElementById(modalId).style.display = 'flex'; 
+            if(modalId === 'historyModal') renderMyHistoryTable();
+            if(modalId === 'transactionHistoryModal') renderTransactionHistory();
+        }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+
+        function showNotification(message, type) {
+            const banner = document.getElementById('notification-banner');
+            banner.classList.remove('hidden');
+            if (type === 'success') { banner.className = "p-2.5 rounded-lg text-xs font-bold tracking-wide bg-emeraldGlow/10 text-emeraldGlow border border-emeraldGlow/30 shadow-lg text-center"; } 
+            else if (type === 'error') { banner.className = "p-2.5 rounded-lg text-xs font-bold tracking-wide bg-roseGlow/10 text-roseGlow border border-roseGlow/30 shadow-lg text-center"; } 
+            else { banner.className = "p-2.5 rounded-lg text-xs font-bold tracking-wide bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-lg text-center"; }
+            banner.innerText = message;
+        }
+
+        function previewImage(event, previewId) {
+            const file = event.target.files[0];
+            const container = document.getElementById(previewId);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    container.innerHTML = `<img src="${e.target.result}" class="w-full h-12 object-cover rounded border border-amber-400/30"><span class="block text-[9px] text-emeraldGlow font-bold mt-1">✓ Attached</span>`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleKycSubmit(event) {
+            event.preventDefault();
+            const fullName = document.getElementById('fullName').value.trim();
+            const dob = document.getElementById('dob').value;
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true; submitBtn.innerText = "Processing & Checking Documents...";
+            const badge = document.getElementById('status-badge');
+            badge.className = "text-xs font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full font-bold inline-block";
+            badge.innerText = "Pending Review...";
+            showNotification('Your documents have been submitted securely. Review in progress...', 'info');
+
+            setTimeout(() => {
+                if (fullName.length >= 3 && dob !== "") {
+                    badge.className = "text-xs font-mono bg-emeraldGlow/10 text-emeraldGlow border border-emeraldGlow/30 px-3 py-1 rounded-full font-bold inline-block shadow-lg shadow-emeraldGlow/20";
+                    badge.innerHTML = "✓ Verified";
+                    const statusContainer = document.getElementById('status-container');
+                    if (!document.getElementById('verified-profile-tag')) {
+                        const verifiedTag = document.createElement('span');
+                        verifiedTag.id = 'verified-profile-tag';
+                        verifiedTag.className = "text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full font-bold flex items-center gap-1";
+                        verifiedTag.innerHTML = "🛡️ Verified Profile";
+                        statusContainer.appendChild(verifiedTag);
+                    }
+                    document.getElementById('upload-section').style.display = 'none'; document.getElementById('submit-container').style.display = 'none';
+                    document.getElementById('header-desc').innerText = "Your account has been successfully verified.";
+                    showNotification('Congratulations! Your account has been successfully verified.', 'success');
+                } else {
+                    badge.innerHTML = "❌ Reject - Try Again"; submitBtn.disabled = false; submitBtn.innerText = "Reject - Try Again";
+                    showNotification('Verification Failed! Please check and try again.', 'error');
+                }
+            }, 3000); 
+        }
+
+        function copyReferralLink() {
+            let refInput = document.getElementById('referralLinkInput'); refInput.select(); navigator.clipboard.writeText(refInput.value);
+            showNotify("Referral link copied to clipboard!");
+        }
+
+        function simulateNewReferral() {
+            referralCount++; referralEarnings += 10.00; realBalance += 10.00; saveDataToStorage();
+            document.getElementById('totalReferralsCount').innerText = referralCount;
+            document.getElementById('totalReferralEarnings').innerText = referralEarnings.toFixed(2);
+            updateBalanceDisplay(); showNotify("Congratulations! You earned 10.00 BDT from referral.");
+        }
+
+        function processDeposit() {
+            let amt = parseFloat(document.getElementById('depositAmountInput').value);
+            let method = document.getElementById('depositMethod').value;
+            let trx = document.getElementById('depositTrxInput').value || 'TRX' + Math.floor(Math.random()*90000+10000);
+            if (isNaN(amt) || amt < 100) { showNotify("Minimum deposit amount is 100 BDT."); return; }
+
+            let userEmail = localStorage.getItem('loggedInUserEmail') || 'user@example.com';
+            let depId = 'DEP_' + Date.now();
+
+            let depObject = {
+                id: depId,
+                time: new Date().toLocaleString(),
+                email: userEmail,
+                method: method.toUpperCase() + ' - ' + trx,
+                amount: amt,
+                status: 'Pending'
+            };
+
+            pendingDepositsList.push(depObject);
+            saveDataToStorage(); closeModal('depositModal');
+
+            // Push to Firebase for Admin Panel
+            db.ref(`deposits/${depId}`).set(depObject);
+
+            showNotify(`Deposit request of ${amt.toFixed(2)} BDT submitted!`);
+            renderTransactionHistory();
+        }
+
+        function processWithdrawal() {
+            let amt = parseFloat(document.getElementById('withdrawAmountInput').value);
+            let method = document.getElementById('withdrawMethod').value;
+            let acc = document.getElementById('withdrawAccountInput').value;
+            if (!acc || amt < 100 || realBalance < amt) { showNotify("Minimum withdrawal is 100 BDT, or insufficient balance."); return; }
+            
+            realBalance -= amt;
+            let userEmail = localStorage.getItem('loggedInUserEmail') || 'user@example.com';
+            let withId = 'WITH_' + Date.now();
+
+            let withObject = {
+                id: withId,
+                time: new Date().toLocaleString(),
+                email: userEmail,
+                method: method.toUpperCase() + ' - ' + acc,
+                amount: amt,
+                status: 'Pending'
+            };
+
+            withdrawalsList.push(withObject);
+            saveDataToStorage(); updateBalanceDisplay(); closeModal('withdrawalModal');
+
+            // Push to Firebase for Admin Panel
+            db.ref(`withdrawals/${withId}`).set(withObject);
+
+            showNotify(`Withdrawal request of ${amt.toFixed(2)} BDT submitted!`);
+            renderTransactionHistory();
+        }
+
+        function renderTransactionHistory() {
+            let depBody = document.getElementById('depositHistoryTableBody');
+            let withBody = document.getElementById('withdrawHistoryTableBody');
+            
+            if(pendingDepositsList.length === 0) {
+                depBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #7f8c8d;">No deposit history.</td></tr>`;
+            } else {
+                depBody.innerHTML = pendingDepositsList.map(d => `<tr><td>${d.time || d.id}</td><td>${d.method}</td><td>${d.amount.toFixed(2)}</td><td style="color:#f1c40f; font-weight:bold;">${d.status || 'Pending'}</td></tr>`).join('');
+            }
+            
+            if(withdrawalsList.length === 0) {
+                withBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #7f8c8d;">No withdrawal history.</td></tr>`;
+            } else {
+                withBody.innerHTML = withdrawalsList.map(w => `<tr><td>${w.time || w.id}</td><td>${w.method}</td><td>${w.amount.toFixed(2)}</td><td style="color:#f1c40f; font-weight:bold;">${w.status || 'Pending'}</td></tr>`).join('');
+            }
+        }
+
+        function toggleSoundFromMenu() {
+            soundEnabled = !soundEnabled; menuSoundItem.innerText = soundEnabled ? "🔊 Sound: ON" : "🔇 Sound: OFF";
+            showNotify(soundEnabled ? "Sound Enabled" : "Sound Muted");
+        }
+
+        function toggleBalanceType() {
+            isRealMode = !isRealMode; updateBalanceDisplay();
+            showNotify(isRealMode ? "Switched to Real Account" : "Switched to Demo Account");
+        }
+
+        function updateBalanceDisplay() {
+            mainBalance.innerText = isRealMode ? realBalance.toFixed(2) + ' BDT (Real)' : demoBalance.toFixed(2) + ' BDT (Demo)';
+            mainBalance.style.color = isRealMode ? '#00ff66' : '#ffcc00';
+            modeBadge.innerText = isRealMode ? 'REAL ACCOUNT' : 'DEMO ACCOUNT';
+        }
+
+        function showNotify(text) {
+            popupNotification.innerText = text; popupNotification.style.display = 'block';
+            setTimeout(() => { popupNotification.style.display = 'none'; }, 2500);
+        }
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            ['All', 'Prev', 'Top'].forEach(t => document.getElementById(`tab${t}`).className = t === tabName ? 'tab active' : 'tab');
+            renderSidebarContent();
+        }
+
+        function renderSidebarContent() {
+            let html = '';
+            for (let i = 1; i <= 15; i++) {
+                let randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+                let betValChoice = (Math.floor(Math.random() * 20) * 100 + 100).toLocaleString('en-US', {minimumFractionDigits: 2});
+                let mult = (Math.random() * 3 + 1.1).toFixed(2) + 'x';
+                let winAmt = (parseFloat(betValChoice.replace(/,/g, '')) * parseFloat(mult)).toLocaleString('en-US', {minimumFractionDigits: 2});
+                html += `<div class="bet-row-item"><div class="bet-user-info"><span style="font-weight: 600; color: #ddd;">${randomName}_${Math.floor(Math.random()*900+100)}</span></div><span>${betValChoice}</span><span style="color: #00ffcc; font-weight: bold;">${mult}</span><span style="font-weight: bold;">${winAmt}</span></div>`;
+            }
+            betsListContainer.innerHTML = html;
+        }
+
+        function renderMyHistoryTable() {
+            let tbody = document.getElementById('myHistoryTableBody');
+            if(myBetHistoryRecords.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #7f8c8d;">No bets placed yet in this session.</td></tr>`;
+                return;
+            }
+            let html = '';
+            myBetHistoryRecords.forEach(rec => {
+                html += `<tr><td>${rec.time}</td><td>${rec.mode}</td><td>${rec.bet.toFixed(2)}</td><td style="color: #00ffcc; font-weight: bold;">${rec.mult ? rec.mult.toFixed(2) + 'x' : 'Crashed'}</td><td style="color: ${rec.win > 0 ? '#00ff66' : '#ff4d4d'}; font-weight: bold;">${rec.win > 0 ? rec.win.toFixed(2) : '0.00'}</td></tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function sendUserChatMessage() {
+            let input = document.getElementById('userChatInput'); let text = input.value.trim();
+            if(!text || !currentUserSafeKey) return;
+
+            // Push Live Chat to Firebase for Admin Panel Desk
+            db.ref(`chats/${currentUserSafeKey}`).push({
+                sender: currentUserEmail || 'user',
+                text: text,
+                timestamp: Date.now()
+            });
+
+            input.value = '';
+            showNotify("Message sent to Support.");
+        }
+
+        function setAccountMode(mode, panel) {
+            document.getElementById(`p${panel}Fun`).className = mode === 'FUN' ? 'switch-btn active' : 'switch-btn';
+            document.getElementById(`p${panel}Real`).className = mode === 'REAL' ? 'switch-btn active' : 'switch-btn';
+        }
+
+        function adjustAmount(val, panel) {
+            let input = panel === 1 ? betInput1 : betInput2;
+            let btn = panel === 1 ? actionBtn1 : actionBtn2;
+            let current = parseFloat(input.value) + val;
+            if (current < 10) current = 10;
+            input.value = current.toFixed(2);
+            let hasBetted = panel === 1 ? hasBetted1 : hasBetted2;
+            if (!hasBetted) btn.innerText = `Bet ${current.toFixed(2)}`;
+        }
+
+        function setPreset(val, panel) {
+            let input = panel === 1 ? betInput1 : betInput2;
+            let btn = panel === 1 ? actionBtn1 : actionBtn2;
+            input.value = val.toFixed(2);
+            let hasBetted = panel === 1 ? hasBetted1 : hasBetted2;
+            if (!hasBetted) btn.innerText = `Bet ${val.toFixed(2)}`;
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            if (canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        let cloudList = [{x: 100, y: 80, speed: 0.5, size: 40}, {x: 350, y: 120, speed: 0.8, size: 60}, {x: 600, y: 60, speed: 0.4, size: 50}, {x: 850, y: 150, speed: 0.6, size: 55}];
+        let crashAnimProgress = 0; 
+
+        function drawScene(progress, flying, isCrashed = false) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, '#0f051d'); skyGrad.addColorStop(0.5, '#1e1138'); skyGrad.addColorStop(1, '#07090e');
+            ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)'; ctx.lineWidth = 1;
+            for(let gx = 0; gx < canvas.width; gx += 60) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke(); }
+            for(let gy = 0; gy < canvas.height; gy += 60) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke(); }
+
+            let groundHeight = 50; ctx.fillStyle = '#0e141f'; ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
+            
+            let horizonGlow = ctx.createLinearGradient(0, canvas.height - groundHeight - 10, 0, canvas.height - groundHeight + 5);
+            horizonGlow.addColorStop(0, 'rgba(255, 51, 75, 0)'); horizonGlow.addColorStop(0.5, 'rgba(255, 51, 75, 0.8)'); horizonGlow.addColorStop(1, '#ff334b');
+            ctx.fillStyle = horizonGlow; ctx.fillRect(0, canvas.height - groundHeight - 10, canvas.width, 15);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            cloudList.forEach(cloud => {
+                if (flying && !isCrashed) { cloud.x -= cloud.speed; if (cloud.x < -100) cloud.x = canvas.width + 100; }
+                ctx.beginPath(); ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+                ctx.arc(cloud.x + (cloud.size * 0.6), cloud.y - (cloud.size * 0.2), cloud.size * 0.7, 0, Math.PI * 2);
+                ctx.arc(cloud.x + (cloud.size * 1.2), cloud.y, cloud.size * 0.8, 0, Math.PI * 2); ctx.fill();
+            });
+
+            if (flying) {
+                ctx.shadowColor = '#ff334b'; ctx.shadowBlur = 18; ctx.strokeStyle = '#ff334b'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(50, canvas.height - 60);
+                let targetX = 50 + progress * (canvas.width - 180); let targetY = (canvas.height - 60) - progress * (canvas.height - 180);
+                ctx.quadraticCurveTo(targetX * 0.45, canvas.height - 60, targetX, targetY); ctx.stroke(); ctx.shadowBlur = 0;
+
+                ctx.save(); ctx.translate(targetX, targetY); ctx.rotate(-Math.PI / 5.5 * progress);
+                let flameGradient = ctx.createRadialGradient(-22, 0, 2, -22, 0, 16);
+                flameGradient.addColorStop(0, '#ffffff'); flameGradient.addColorStop(0.3, '#ffcc00');
+                flameGradient.addColorStop(0.7, '#ff3300'); flameGradient.addColorStop(1, 'rgba(255,0,0,0)');
+                ctx.fillStyle = flameGradient; ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-42 - Math.random() * 12, -7); ctx.lineTo(-42 - Math.random() * 12, 7); ctx.closePath(); ctx.fill();
+
+                let bodyGrad = ctx.createLinearGradient(0, -10, 0, 10);
+                bodyGrad.addColorStop(0.0, '#ff6b81'); bodyGrad.addColorStop(0.5, '#ff334b'); bodyGrad.addColorStop(1.0, '#b30021');
+                ctx.fillStyle = bodyGrad; ctx.beginPath(); ctx.moveTo(32, 0); ctx.lineTo(8, -8); ctx.lineTo(-24, -6); ctx.lineTo(-28, -15);
+                ctx.lineTo(-22, -15); ctx.lineTo(-24, -2); ctx.lineTo(-26, 8); ctx.lineTo(-20, 8); ctx.lineTo(10, 6); ctx.closePath(); ctx.fill();
+
+                let glassGrad = ctx.createLinearGradient(0, -8, 0, -2);
+                glassGrad.addColorStop(0, '#00ffff'); glassGrad.addColorStop(1, '#008b8b');
+                ctx.fillStyle = glassGrad; ctx.beginPath(); ctx.moveTo(12, -4); ctx.quadraticCurveTo(4, -11, -8, -6); ctx.lineTo(6, -3); ctx.closePath(); ctx.fill();
+
+                ctx.fillStyle = '#cc0029'; ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(-8, -26); ctx.lineTo(-16, -26); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#800018'; ctx.beginPath(); ctx.moveTo(4, 2); ctx.lineTo(-10, 22); ctx.lineTo(-18, 22); ctx.lineTo(-6, 2); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(28, -1, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            } else if (isCrashed) {
+                crashAnimProgress += 0.05; if (crashAnimProgress > 1) crashAnimProgress = 1;
+                let crashX = canvas.width * 0.75; let crashY = canvas.height - 50; let radius = crashAnimProgress * 55;
+                let grad = ctx.createRadialGradient(crashX, crashY, 5, crashX, crashY, radius);
+                grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.4, '#ffcc00'); grad.addColorStop(0.8, '#ff334b'); grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(crashX, crashY, radius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ff334b'; ctx.save(); ctx.translate(crashX + (crashAnimProgress * 30), crashY - (15 * (1 - crashAnimProgress))); ctx.rotate(Math.PI / 3); ctx.fillRect(-18, -6, 36, 9); ctx.restore();
+                ctx.fillStyle = '#a0aab5'; ctx.save(); ctx.translate(crashX - (crashAnimProgress * 35), crashY - (8 * (1 - crashAnimProgress))); ctx.rotate(-Math.PI / 4); ctx.fillRect(-12, -4, 24, 7); ctx.restore();
+            }
+        }
+
+        function runGameLoop() {
+            resizeCanvas();
+            isWaitingForNextRound = true;
+            let countdown = 4; liveWinPreview.innerText = ""; renderSidebarContent();
+            let waitInterval = setInterval(() => {
+                multiplierDisplay.innerText = `Next in ${countdown}s`; multiplierDisplay.style.fontSize = "30px";
+                drawScene(0, false); countdown--;
+                if (countdown < 0) { clearInterval(waitInterval); startFlight(); }
+            }, 1000);
+        }
+
+        function startFlight() {
+            isRunning = true;
+            isWaitingForNextRound = false; 
+            multiplier = 1.00; 
+
+            // ADMIN CONTROL CALCULATION (Forced Multiplier & Outcome Rigging Sync)
+            if(adminForcedMultiplier !== null && adminForcedMultiplier > 1.00) {
+                crashPoint = adminForcedMultiplier;
+                adminForcedMultiplier = null; // Reset forced multiplier after single run
+            } else if(adminUserRig === 'LOSS') {
+                crashPoint = parseFloat((Math.random() * (1.15 - 1.01) + 1.01).toFixed(2)); // Instant Crash
+            } else if(adminUserRig === 'WIN') {
+                crashPoint = parseFloat((Math.random() * (12.00 - 5.00) + 5.00).toFixed(2)); // High Multiplier
+            } else {
+                crashPoint = parseFloat((Math.random() * (5 - 1.2) + 1.2).toFixed(2));
+            }
+
+            crashAnimProgress = 0;
+            
+            // If user placed a bet but didn't cancel before flight started, convert button to CASH OUT
+            [1, 2].forEach(p => {
+                let hasB = p === 1 ? hasBetted1 : hasBetted2;
+                let btn = p === 1 ? actionBtn1 : actionBtn2;
+                if(hasB) {
+                    btn.className = "action-btn btn-cashout";
+                    btn.innerText = "CASH OUT";
+                }
+            });
+
+            multiplierDisplay.style.fontSize = "48px"; multiplierDisplay.style.color = "#ffffff";
+            let startTime = Date.now();
+            let flightInterval = setInterval(() => {
+                let elapsed = (Date.now() - startTime) / 1000;
+                multiplier = parseFloat((1.00 + elapsed * 0.15).toFixed(2));
+                multiplierDisplay.innerText = multiplier.toFixed(2) + 'x';
+
+                if(hasBetted1 || hasBetted2) {
+                    let totalActiveBet = (hasBetted1 ? activeBetAmount1 : 0) + (hasBetted2 ? activeBetAmount2 : 0);
+                    liveWinPreview.innerText = `Win: ${(totalActiveBet * multiplier).toFixed(2)} BDT`;
+                }
+
+                drawScene(Math.min(elapsed / 10, 1), true, false);
+
+                if (multiplier >= crashPoint) {
+                    clearInterval(flightInterval); isRunning = false;
+                    multiplierDisplay.innerText = `CRASHED @ ${crashPoint.toFixed(2)}x`;
+                    multiplierDisplay.style.fontSize = "24px"; multiplierDisplay.style.color = "#ff4d4d"; liveWinPreview.innerText = "";
+
+                    let crashFrameCount = 0;
+                    let crashRenderInterval = setInterval(() => { drawScene(1, false, true); crashFrameCount++; if(crashFrameCount > 25) clearInterval(crashRenderInterval); }, 40);
+
+                    let newChip = document.createElement('div'); newChip.className = crashPoint > 2.0 ? 'history-chip high' : 'history-chip'; newChip.innerText = crashPoint.toFixed(2) + 'x';
+                    historyBar.appendChild(newChip); if(historyBar.children.length > 12) historyBar.children[0].remove();
+
+                    [1, 2].forEach(p => {
+                        let hasBetted = p === 1 ? hasBetted1 : hasBetted2;
+                        if (hasBetted) {
+                            myBetHistoryRecords.unshift({ time: new Date().toLocaleTimeString(), mode: isRealMode ? 'Real' : 'Demo', bet: p === 1 ? activeBetAmount1 : activeBetAmount2, mult: null, win: 0 });
+                            saveDataToStorage();
+                            if(p === 1) { hasBetted1 = false; actionBtn1.className = "action-btn btn-bet"; actionBtn1.innerText = `Bet ${betInput1.value}`; } 
+                            else { hasBetted2 = false; actionBtn2.className = "action-btn btn-bet"; actionBtn2.innerText = `Bet ${betInput2.value}`; }
+                        }
+                    });
+                    setTimeout(runGameLoop, 2500);
+                }
+            }, 50);
+        }
+
+        function handleBetAction(panel) {
+            let input = panel === 1 ? betInput1 : betInput2; 
+            let btn = panel === 1 ? actionBtn1 : actionBtn2;
+            let betVal = parseFloat(input.value); 
+            let hasBetted = panel === 1 ? hasBetted1 : hasBetted2;
+            let currentBal = isRealMode ? realBalance : demoBalance;
+
+            // 1. Placing a bet during waiting time before flight
+            if (!hasBetted && isWaitingForNextRound) {
+                if (currentBal >= betVal) {
+                    if (isRealMode) realBalance -= betVal; else demoBalance -= betVal;
+                    saveDataToStorage(); updateBalanceDisplay();
+                    if(panel === 1) { hasBetted1 = true; activeBetAmount1 = betVal; } else { hasBetted2 = true; activeBetAmount2 = betVal; }
+                    
+                    // Button changes to CANCEL / BACK option before round starts
+                    btn.className = "action-btn btn-cancel"; 
+                    btn.innerText = "CANCEL (TAKE BACK)";
+                    showNotify(`Panel ${panel} Bet Placed!`);
+                } else { showNotify("Insufficient Balance!"); }
+            } 
+            // 2. Taking back / cancelling bet before round runs
+            else if (hasBetted && isWaitingForNextRound) {
+                let betRefund = panel === 1 ? activeBetAmount1 : activeBetAmount2;
+                if (isRealMode) realBalance += betRefund; else demoBalance += betRefund;
+                saveDataToStorage(); updateBalanceDisplay();
+                if(panel === 1) { hasBetted1 = false; } else { hasBetted2 = false; }
+                
+                btn.className = "action-btn btn-bet"; 
+                btn.innerText = `Bet ${input.value}`;
+                showNotify(`Panel ${panel} Bet Cancelled & Money Returned!`);
+            } 
+            // 3. Placing bet directly while flight is already running (queuing for next or disabled)
+            else if (!hasBetted && isRunning === true) {
+                showNotify("Please wait for the next round to place a bet!");
+            }
+            // 4. Cash out while flight is running
+            else if (hasBetted && isRunning === true) {
+                let activeAmt = panel === 1 ? activeBetAmount1 : activeBetAmount2; 
+                let winAmt = activeAmt * multiplier;
+                if (isRealMode) realBalance += winAmt; else demoBalance += winAmt;
+                myBetHistoryRecords.unshift({ time: new Date().toLocaleTimeString(), mode: isRealMode ? 'Real' : 'Demo', bet: activeAmt, mult: multiplier, win: winAmt });
+                saveDataToStorage(); updateBalanceDisplay();
+                if(panel === 1) hasBetted1 = false; else hasBetted2 = false;
+                btn.className = "action-btn btn-bet"; btn.innerText = `Bet ${input.value}`;
+                showNotify(`Cashed out successfully: ${winAmt.toFixed(2)} BDT`);
+            }
+        }
+
+        updateBalanceDisplay();
+    </script>
+</body>
+</html>
